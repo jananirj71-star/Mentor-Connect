@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ role|capitalize }} Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <div class="top-bar">
+      <h2>{{ role|capitalize }} Dashboard</h2>
+      {% if role != "admin" %}<a class="btn small" href="{{ url_for('logout') }}">Logout</a>{% endif %}
+    </div>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}<p class="flash">{{ messages[0] }}</p>{% endif %}
+    {% endwith %}
+
+    {% if role == "student" %}
+      <h3>Welcome, {{ user.name }} (Interest: {{ user.interest }})</h3>
+
+      <h4>Available Mentors</h4>
+      <table>
+        <tr><th>Name</th><th>Skill</th><th>Action</th></tr>
+        {% for m in mentors %}
+        <tr><td>{{ m.name }}</td><td>{{ m.skill }}</td>
+          <td><a class="btn small" href="{{ url_for('book_session', mentor_id=m.id) }}">Book</a></td></tr>
+        {% endfor %}
+      </table>
+
+      <h4>My Bookings</h4>
+      <table>
+        <tr><th>Mentor</th><th>Status</th><th>Feedback</th></tr>
+        {% for b in bookings %}
+        <tr>
+          <td>{{ b.mentor_id }}</td><td>{{ b.status }}</td>
+          <td>
+            {% if b.status == "Accepted" and not b.feedback %}
+            <form method="POST" action="{{ url_for('give_feedback', booking_id=b.id) }}">
+              <input type="text" name="feedback" placeholder="Feedback" required>
+              <input type="number" name="rating" min="1" max="5" placeholder="1-5" required>
+              <button class="btn small" type="submit">Submit</button>
+            </form>
+            {% elif b.feedback %} {{ b.feedback }} ({{ b.rating }}★)
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+
+    {% elif role == "mentor" %}
+      <h3>Welcome, {{ user.name }} (Skill: {{ user.skill }})
+        {% if not user.approved %} — <span class="flash">Pending Admin Approval</span>{% endif %}
+      </h3>
+      <h4>Session Requests</h4>
+      <table>
+        <tr><th>Student</th><th>Status</th><th>Action</th></tr>
+        {% for r in requests %}
+        <tr>
+          <td>{{ r.student_id }}</td><td>{{ r.status }}</td>
+          <td>
+            {% if r.status == "Pending" %}
+            <a class="btn small" href="{{ url_for('respond_request', booking_id=r.id, action='accept') }}">Accept</a>
+            <a class="btn small secondary" href="{{ url_for('respond_request', booking_id=r.id, action='reject') }}">Reject</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+
+    {% elif role == "admin" %}
+      <h4>Students</h4>
+      <table>
+        <tr><th>Name</th><th>Email</th><th>Interest</th></tr>
+        {% for s in students %}
+        <tr><td>{{ s.name }}</td><td>{{ s.email }}</td><td>{{ s.interest }}</td></tr>
+        {% endfor %}
+      </table>
+
+      <h4>Mentors</h4>
+      <table>
+        <tr><th>Name</th><th>Email</th><th>Skill</th><th>Status</th><th>Action</th></tr>
+        {% for m in mentors %}
+        <tr>
+          <td>{{ m.name }}</td><td>{{ m.email }}</td><td>{{ m.skill }}</td>
+          <td>{{ "Approved" if m.approved else "Pending" }}</td>
+          <td>{% if not m.approved %}<a class="btn small" href="{{ url_for('approve_mentor', mentor_id=m.id) }}">Approve</a>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% endif %}
+
+    <a href="{{ url_for('home') }}">← Back to Home</a>
+  </div>
+</body>
+</html>
