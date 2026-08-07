@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -5,7 +6,13 @@ from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "change-this-secret-key"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///mentorconnect.db"
+
+# Render PostgreSQL அல்லது லோக்கல் SQLite இரண்டையும் ஏற்கும் வடிவமைப்பு:
+database_url = os.environ.get("DATABASE_URL")
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url or "sqlite:///mentorconnect.db"
 db = SQLAlchemy(app)
 
 class Student(db.Model):
@@ -146,14 +153,9 @@ def logout():
     session.clear()
     return redirect(url_for("home"))
 
-if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    import os
+with app.app_context():
+    db.create_all()
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=False)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port, debug=False)
